@@ -1,12 +1,17 @@
 from rest_framework import viewsets,permissions
 from .models import DoctorProfile, PatientProfile, Appointment
 from .serializers import DoctorSerializer, PatientSerializer, AppointmentSerializer
-
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = DoctorProfile.objects.all()
     serializer_class = DoctorSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ["specialization"]
+    search_fields = ["specialization", "user__first_name", "user__last_name"]
+    ordering_fields = ["user__username"]
+    
     
     
 class PatientViewSet(viewsets.ModelViewSet):
