@@ -1,36 +1,45 @@
-from rest_framework import viewsets,permissions
-from .models import DoctorProfile, PatientProfile, Appointment
-from .serializers import DoctorSerializer, PatientSerializer, AppointmentSerializer
-from django_filters.rest_framework import DjangoFilterBackend
-
-
+from rest_framework import viewsets, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .models import DoctorProfile, PatientProfile, Appointment, Prescription
+from .serializers import DoctorSerializer, PatientSerializer, AppointmentSerializer, PrescriptionSerializer
+from .permissions import IsDoctor, IsPatient, IsAppointmentOwnerOrDoctor
+from django.shortcuts import get_object_or_404
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = DoctorProfile.objects.all()
     serializer_class = DoctorSerializer
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ["specialization"]
-    search_fields = ["specialization", "user__first_name", "user__last_name"]
-    ordering_fields = ["user__username"]
-    
-    
-    
+    permission_classes = [IsAuthenticated, IsDoctor]
+
 class PatientViewSet(viewsets.ModelViewSet):
     queryset = PatientProfile.objects.all()
     serializer_class = PatientSerializer
+    permission_classes = [IsAuthenticated, IsPatient]
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
     serializer_class = AppointmentSerializer
-    
-    
+    permission_classes = [IsAuthenticated, IsAppointmentOwnerOrDoctor]
+
     def perform_create(self, serializer):
-        profile = PatientProfile.objects.get(user=self.request.user)
+        profile = get_object_or_404(PatientProfile, user=self.request.user)
         serializer.save(patient=profile)
-    
-    
+
     @action(detail=True, methods=["post"], permission_classes=[IsDoctor])
     def confirm(self, request, pk=None):
-        appt = self.get_object()
-        appt.status = "confirmed"
-        appt.save()
-        return Response({"status":"confirmed"})
+        appointment = self.get_object()
+        appointment.status = "confirmed"
+        appointment.save()
+        return Response({"status": "confirmed"})
+
+    @action(detail=True, methods=["post"], permission_classes=[IsDoctor])
+    def cancel(self, request, pk=None):
+        appointment = self.get_object()
+        appointment.status = "cancelled"
+        appointment.save()
+        return Response({"status": "cancelled"})
+
+class PrescriptionViewSet(viewsets.ModelViewSet):
+    queryset = Prescription.objects.all()
+    serializer_class = PrescriptionSerializer
+    permission_classes = [IsAuthenticated, IsDoctor]
