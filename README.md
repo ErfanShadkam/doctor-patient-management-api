@@ -56,3 +56,41 @@ A professional Django REST Framework project for managing doctors, patients, app
 ![Swagger UI](screenshots/swagger.png)
 
 [Swagger UI PDF](screenshots/api_docs.pdf)
+
+---
+
+## 💻 Installation
+
+1. **Clone the repository**
+```bash
+git clone https://github.com/ErfanShadkam/doctor-patient-management-api.git
+cd doctor-patient-management-api
+```
+2. **Create a virtual environment**
+```bash
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+venv\Scripts\activate     # Windows
+```
+3. **Install dependencies**
+```
+pip install -r requirements.txt
+```
+
+4. **Apply migrations**
+```
+python manage.py migrate
+```
+
+5. **Create superuser (optional)**
+```
+python manage.py createsuperuser
+```
+
+6. **Run the server**
+```
+python manage.py runserver
+```
+7. **Access API Documentation**
+
+Visit http://127.0.0.1:8000/api/docs/
