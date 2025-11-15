@@ -20,8 +20,9 @@ class AppointmentSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class PrescriptionSerializer(serializers.ModelSerializer):
-    appointment = AppointmentSerializer(read_only=True)
+    appointment_id = serializers.IntegerField(write_only=True)
 
     class Meta:
         model = Prescription
-        fields = "__all__"
+        fields = ["id", "appointment", "appointment_id", "notes"]
+        read_only_fields = ["appointment"]
