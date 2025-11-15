@@ -95,9 +95,7 @@ A professional Django REST Framework project for managing doctors, patients, app
 
 ---
 
-## 🔄 API Endpoints
 
-### Doctors
 
 ## 🛠 Tech Stack
 - **Backend:** Django 5, Django REST Framework

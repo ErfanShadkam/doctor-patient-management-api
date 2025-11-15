@@ -92,6 +92,11 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
 
         appointment = get_object_or_404(Appointment, id=appointment_id)
 
+        user = self.request.user
+        if not hasattr(user, "doctorprofile") or appointment.doctor != user.doctorprofile:
+            raise ValidationError("You can only create prescriptions for your own patients.")
+
+
         if hasattr(appointment, "prescription"):
             raise ValidationError("Prescription already exists")
 
