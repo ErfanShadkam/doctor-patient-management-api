@@ -12,7 +12,7 @@ class DoctorProfile(models.Model):
     
     
     def __str__(self):
-        return f"Dr. {self.user.get_username()}"
+        return f"Dr. {self.full_name or self.user.username} ({self.specialization})"
     
 
 class PatientProfile(models.Model):
@@ -22,7 +22,7 @@ class PatientProfile(models.Model):
     medical_history = models.TextField(blank=True)
     
     def __str__(self):
-        return self.user.get_username()
+        return self.full_name or self.user.username
 
 class Appointment(models.Model):
     STATUS_CHOICES = [
@@ -38,11 +38,15 @@ class Appointment(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def __str__(self):
+        return f"Appointment #{self.id} - {self.patient} with {self.doctor} at {self.scheduled_at}"
 
 
 class Prescription(models.Model):
     appointment = models.OneToOneField(Appointment, on_delete=models.CASCADE, related_name="prescription")
     notes = models.TextField()
 
+
     def __str__(self):
-        return f"Prescription for {self.appointment}"
+        return f"Prescription for appointment #{self.appointment.id}"
+
