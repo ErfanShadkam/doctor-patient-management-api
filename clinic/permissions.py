@@ -43,3 +43,23 @@ class ReadOnlyForDoctors(BasePermission):
         return False
 
 
+
+class IsDoctorOwnPatient(BasePermission):
+    """
+    Doctors can access only patients they have appointments with.
+    Admins can access all.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+
+        if user.is_superuser or user.is_staff:
+            return True
+
+        if not hasattr(user, 'doctorprofile'):
+            return False  # Not a doctor
+
+        doctor_profile = user.doctorprofile
+
+        # Check if this patient has an appointment with this doctor
+        return obj.appointments.filter(doctor=doctor_profile).exists()

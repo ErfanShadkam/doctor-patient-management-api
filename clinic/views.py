@@ -5,8 +5,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import DoctorProfile, PatientProfile, Appointment, Prescription
 from .serializers import DoctorSerializer, PatientSerializer, AppointmentSerializer, PrescriptionSerializer
-from .permissions import IsDoctor, IsPatient, IsAppointmentOwnerOrDoctor,ReadOnlyForDoctors
+from .permissions import IsDoctor, IsPatient, IsAppointmentOwnerOrDoctor,ReadOnlyForDoctors,IsDoctorOwnPatient
 from django.shortcuts import get_object_or_404
+from django.db import models
+from django.db.models import Q
+
+
 class DoctorViewSet(viewsets.ModelViewSet):
     queryset = DoctorProfile.objects.all()
     serializer_class = DoctorSerializer
@@ -15,7 +19,26 @@ class DoctorViewSet(viewsets.ModelViewSet):
 class PatientViewSet(viewsets.ModelViewSet):
     queryset = PatientProfile.objects.all()
     serializer_class = PatientSerializer
-    permission_classes = [IsAuthenticated, IsPatient]
+    permission_classes = [IsAuthenticated,IsDoctorOwnPatient]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser or user.is_staff:
+
+            return PatientProfile.objects.all()
+
+        if hasattr(user, 'doctorprofile'):
+            return PatientProfile.objects.filter(
+                appointments__doctor=user.doctorprofile
+            ).distinct()
+
+        if hasattr(user, 'patientprofile'):
+
+            return PatientProfile.objects.filter(user=user)
+
+
+        return PatientProfile.objects.none()
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
@@ -39,6 +62,25 @@ class AppointmentViewSet(viewsets.ModelViewSet):
         appointment.status = "cancelled"
         appointment.save()
         return Response({"status": "cancelled"})
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser or user.is_staff:
+            # ادمین همه appointment ها را می‌بیند
+            return Appointment.objects.all()
+
+        if hasattr(user, 'doctorprofile'):
+            # دکتر فقط appointmentهایی که خودش داره یا دکتر ندارد
+            return Appointment.objects.filter(
+                models.Q(doctor=None) | models.Q(doctor=user.doctorprofile)
+            )
+
+        if hasattr(user, 'patientprofile'):
+            # بیمار فقط appointment خودش
+            return Appointment.objects.filter(patient=user.patientprofile)
+
+        return Appointment.objects.none()
 
 class PrescriptionViewSet(viewsets.ModelViewSet):
     queryset = Prescription.objects.all()

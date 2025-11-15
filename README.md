@@ -41,6 +41,64 @@ A professional Django REST Framework project for managing doctors, patients, app
 
 ---
 
+## 🔑 Permissions
+
+| Permission | Description |
+|------------|-------------|
+| `IsDoctor` | Only doctors can access specific actions |
+| `IsPatient` | Only patients can access specific actions |
+| `IsAppointmentOwnerOrDoctor` | Appointment can be accessed by the patient or the assigned doctor |
+| `ReadOnlyForDoctors` | Doctors can only **view** (GET, LIST) doctor profiles |
+| `IsDoctorOwnPatient` | Doctors can only access patients they have appointments with |
+
+---
+
+## 🗂 Models
+
+### DoctorProfile
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | OneToOneField | Linked to the Django User model |
+| `full_name` | CharField | Doctor's full name |
+| `specialization` | CharField | Doctor's specialty |
+| `bio` | TextField | Doctor bio |
+| `available_from` | TimeField | Start of available hours |
+| `available_to` | TimeField | End of available hours |
+
+### PatientProfile
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `user` | OneToOneField | Linked to the Django User model |
+| `full_name` | CharField | Patient's full name |
+| `birth_date` | DateField | Birth date |
+| `medical_history` | TextField | Medical history |
+
+### Appointment
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `doctor` | ForeignKey | Doctor assigned (nullable) |
+| `patient` | ForeignKey | Patient creating the appointment |
+| `scheduled_at` | DateTimeField | Date and time of appointment |
+| `reason` | TextField | Reason for visit |
+| `status` | CharField | `pending`, `confirmed`, `completed`, `cancelled` |
+| `created_at` | DateTimeField | Auto-created timestamp |
+
+### Prescription
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `appointment` | OneToOneField | Linked appointment |
+| `notes` | TextField | Prescription notes |
+
+---
+
+## 🔄 API Endpoints
+
+### Doctors
+
 ## 🛠 Tech Stack
 - **Backend:** Django 5, Django REST Framework
 - **Authentication:** JWT (SimpleJWT)
