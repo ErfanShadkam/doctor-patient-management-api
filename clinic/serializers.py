@@ -9,7 +9,8 @@ class DoctorSerializer(serializers.ModelSerializer):
 class PatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatientProfile
-        fields = "__all__"
+        fields = ["full_name","birth_date","medical_history",'id']
+        read_only_fields = ['id']
 
 class AppointmentSerializer(serializers.ModelSerializer):
     doctor = DoctorSerializer(read_only=True)

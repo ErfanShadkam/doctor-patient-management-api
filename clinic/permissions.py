@@ -63,3 +63,65 @@ class IsDoctorOwnPatient(BasePermission):
 
         # Check if this patient has an appointment with this doctor
         return obj.appointments.filter(doctor=doctor_profile).exists()
+
+
+class IsOwnerProfile(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user
+
+
+
+class PrescriptionPermission(BasePermission):
+    """
+    - Doctors: can create prescriptions for their patients and read them
+    - Patients: can only read their own prescriptions
+    - Admin/Staff: full access
+    """
+
+    def has_permission(self, request, view):
+        # Admin/staff can do everything
+        if request.user.is_superuser or request.user.is_staff:
+            return True
+
+        # Doctors can do GET, POST
+        if hasattr(request.user, "doctorprofile"):
+            return request.method in SAFE_METHODS + ("POST",)
+
+        # Patients can only GET
+        if hasattr(request.user, "patientprofile"):
+            return request.method in SAFE_METHODS
+
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+
+        if user.is_superuser or user.is_staff:
+            return True
+
+        # Doctors: can only access prescriptions of their patients
+        if hasattr(user, "doctorprofile"):
+            return obj.appointment.doctor == user.doctorprofile
+
+        # Patients: can only access prescriptions of their own appointments
+        if hasattr(user, "patientprofile"):
+            return obj.appointment.patient == user.patientprofile
+
+        return False
+
+
+
+class IsOwnerPatientProfile(BasePermission):
+    """
+    بیماران فقط می‌توانند پروفایل خودشان را ببینند / ویرایش کنند.
+    دکترها فقط مریض‌های خودشون و Admin/Staff همه
+    """
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if user.is_superuser or user.is_staff:
+            return True
+        if hasattr(user, "doctorprofile"):
+            return obj.appointments.filter(doctor=user.doctorprofile).exists()
+        if hasattr(user, "patientprofile"):
+            return obj.user == user
+        return False

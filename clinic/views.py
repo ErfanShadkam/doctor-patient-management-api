@@ -5,7 +5,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import DoctorProfile, PatientProfile, Appointment, Prescription
 from .serializers import DoctorSerializer, PatientSerializer, AppointmentSerializer, PrescriptionSerializer
-from .permissions import IsDoctor, IsPatient, IsAppointmentOwnerOrDoctor,ReadOnlyForDoctors,IsDoctorOwnPatient
+from .permissions import IsDoctor, IsPatient, IsAppointmentOwnerOrDoctor, ReadOnlyForDoctors, PrescriptionPermission, \
+    IsOwnerPatientProfile
 from django.shortcuts import get_object_or_404
 from django.db import models
 from django.db.models import Q
@@ -16,29 +17,29 @@ class DoctorViewSet(viewsets.ModelViewSet):
     serializer_class = DoctorSerializer
     permission_classes = [IsAuthenticated, ReadOnlyForDoctors]
 
+
 class PatientViewSet(viewsets.ModelViewSet):
     queryset = PatientProfile.objects.all()
     serializer_class = PatientSerializer
-    permission_classes = [IsAuthenticated,IsDoctorOwnPatient]
+    permission_classes = [IsAuthenticated, IsOwnerPatientProfile]
 
     def get_queryset(self):
         user = self.request.user
-
         if user.is_superuser or user.is_staff:
-
             return PatientProfile.objects.all()
-
         if hasattr(user, 'doctorprofile'):
-            return PatientProfile.objects.filter(
-                appointments__doctor=user.doctorprofile
-            ).distinct()
-
+            return PatientProfile.objects.filter(appointments__doctor=user.doctorprofile).distinct()
         if hasattr(user, 'patientprofile'):
-
             return PatientProfile.objects.filter(user=user)
-
+        return PatientProfile.objects.none()
 
         return PatientProfile.objects.none()
+
+    def perform_create(self, serializer):
+        if hasattr(self.request.user, 'patientprofile'):
+            raise ValidationError("You already have a profile.")
+        serializer.save(user=self.request.user)
+
 
 class AppointmentViewSet(viewsets.ModelViewSet):
     queryset = Appointment.objects.all()
@@ -82,10 +83,22 @@ class AppointmentViewSet(viewsets.ModelViewSet):
 
         return Appointment.objects.none()
 
+
 class PrescriptionViewSet(viewsets.ModelViewSet):
     queryset = Prescription.objects.all()
     serializer_class = PrescriptionSerializer
-    permission_classes = [IsAuthenticated, IsDoctor]
+    permission_classes = [IsAuthenticated, PrescriptionPermission]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if user.is_superuser or user.is_staff:
+            return Prescription.objects.all()
+        if hasattr(user, "doctorprofile"):
+            return Prescription.objects.filter(appointment__doctor=user.doctorprofile)
+        if hasattr(user, "patientprofile"):
+            return Prescription.objects.filter(appointment__patient=user.patientprofile)
+        return Prescription.objects.none()
 
     def perform_create(self, serializer):
         appointment_id = serializer.validated_data.pop("appointment_id")
@@ -95,7 +108,6 @@ class PrescriptionViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if not hasattr(user, "doctorprofile") or appointment.doctor != user.doctorprofile:
             raise ValidationError("You can only create prescriptions for your own patients.")
-
 
         if hasattr(appointment, "prescription"):
             raise ValidationError("Prescription already exists")
